@@ -100,7 +100,7 @@ public class ClarkeExtractor implements IExtractor {
                 alternativeNames = "";
             }
 
-            materiaMedica.setRemedyAlternativeNames(alternativeNames);
+            materiaMedica.setRemedyAlternativeNames(StringUtil.cleanString(alternativeNames));
 
             Elements symptomBlocks = doc.getElementsByTag("blockquote").get(0)
                     .getElementsByTag("p");
