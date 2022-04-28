@@ -91,6 +91,10 @@ public class ClarkeExtractor implements IExtractor {
                 throw new Exception("NOT ASCII!");
             }
 
+            if (remedyName.contains("Aconitum Napellus")) {
+                System.out.println("here");
+            }
+
             materiaMedica.setRemedyName(remedyName);
 
             String alternativeNames = doc.getElementsByTag("blockquote").get(0)
@@ -105,9 +109,12 @@ public class ClarkeExtractor implements IExtractor {
             Elements symptomBlocks = doc.getElementsByTag("blockquote").get(0)
                     .getElementsByTag("p");
 
+            String lastCategory = null;
+
             for (Element symptomBlock : symptomBlocks) {
                 if ("justify".equals(symptomBlock.attr("align").toLowerCase())) {
                     if (symptomBlock.getElementsByTag("font").size() > 0) {
+                        Element categoryElement = symptomBlock.getElementsByTag("font").get(0);
 
                         String category = symptomBlock.getElementsByTag("font").get(0).text()
                                 .replace(".", "")
@@ -120,7 +127,14 @@ public class ClarkeExtractor implements IExtractor {
                         List<String> symptomList = getSymptomList(symptoms);
                         symptomList.remove(category + ".");
 
-                        materiaMedica.getCategories().put(category, symptomList);
+                        if (categoryElement.hasAttr("color") &&
+                                "#ff0000".equals(categoryElement.attr("color").toLowerCase())) {
+
+                            materiaMedica.getCategories().put(category, symptomList);
+                            lastCategory = category;
+                        } else {
+                            materiaMedica.getCategories().get(lastCategory).addAll(symptomList);
+                        }
                     }
                 }
             }
