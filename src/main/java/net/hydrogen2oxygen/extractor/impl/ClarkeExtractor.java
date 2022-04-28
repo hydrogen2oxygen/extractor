@@ -1,6 +1,7 @@
 package net.hydrogen2oxygen.extractor.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import net.hydrogen2oxygen.domain.Category;
 import net.hydrogen2oxygen.domain.MateriaMedica;
 import net.hydrogen2oxygen.extractor.IExtractor;
 import net.hydrogen2oxygen.utils.StringUtil;
@@ -11,13 +12,13 @@ import org.jsoup.select.Elements;
 
 import java.io.File;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class ClarkeExtractor implements IExtractor {
 
     private ObjectMapper objectMapper = new ObjectMapper();
     private String outputFolder;
+    private Map<String, Category> categories = new HashMap<>();
 
     @Override
     public void extract(String baseUrl, String outputFolder) {
@@ -48,6 +49,20 @@ public class ClarkeExtractor implements IExtractor {
 
         } catch (Exception e) {
             e.printStackTrace();
+        }
+
+        List<Category> categoryList = new ArrayList<>();
+        categoryList.addAll(categories.values());
+
+        categoryList.sort(new Comparator<Category>() {
+            @Override
+            public int compare(Category o1, Category o2) {
+                return o2.getCount().compareTo(o1.getCount());
+            }
+        });
+
+        for (Category category : categoryList) {
+            System.out.println(category);
         }
     }
 
@@ -87,12 +102,16 @@ public class ClarkeExtractor implements IExtractor {
 
             remedyName = StringUtil.cleanString(remedyName);
 
-            if (!StringUtil.isPureAscii(remedyName)) {
-                throw new Exception("NOT ASCII!");
+            if (remedyName.length() == 0) {
+                remedyName = doc.getElementsByTag("blockquote").get(0)
+                        .getElementsByTag("p").get(1).getElementsByTag("font").get(0).text()
+                        .replace(".","").trim();
+
+                remedyName = StringUtil.cleanString(remedyName);
             }
 
-            if (remedyName.contains("Aconitum Napellus")) {
-                System.out.println("here");
+            if (!StringUtil.isPureAscii(remedyName)) {
+                throw new Exception("NOT ASCII!");
             }
 
             materiaMedica.setRemedyName(remedyName);
@@ -120,6 +139,16 @@ public class ClarkeExtractor implements IExtractor {
                                 .replace(".", "")
                                 .replace("─","").trim();
                         category = StringUtil.removeNumbers(category);
+
+                        if ("1, Mind and Head".equals(category)) {
+                            category = "Mind";
+                        }
+
+                        if (categories.get(category) == null) {
+                            categories.put(category, new Category(category, 1, targetUrl));
+                        } else {
+                            categories.put(category, new Category(category, categories.get(category).getCount() + 1, targetUrl));
+                        }
 
                         String symptoms = StringUtil.cleanString(symptomBlock.text());
                         symptoms = StringUtil.removeNumbers(symptoms);
